@@ -1,5 +1,7 @@
 # The Wild Oasis
 
+**Live Demo:** [the-wild-oasis-livid-eta.vercel.app](https://the-wild-oasis-livid-eta.vercel.app)
+
 ## About the Project
 
 The Wild Oasis is a full-stack internal hotel management dashboard built for a boutique hotel/lodge. It serves as a back-office tool where hotel staff can manage every aspect of daily operations — from tracking guest bookings and handling check-ins/check-outs to managing cabins, monitoring business performance through analytics, and configuring hotel-wide settings.
