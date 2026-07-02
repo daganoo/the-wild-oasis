@@ -47,14 +47,45 @@ This project demonstrates how modern front-end tooling and a backend-as-a-servic
 - **Authentication** — Staff login/signup, profile updates (name, avatar, password).
 - **Dark mode** — Light/dark theme toggle persisted in localStorage.
 
+## Screenshots
+
+### Dashboard
+
+![Dashboard](screenshots/dashboard.png)
+
+### Bookings
+
+![Bookings](screenshots/bookings.png)
+
+### Cabins
+
+![Cabins](screenshots/cabins.png)
+
+### Login
+
+![Login](screenshots/login.png)
+
 ## Getting Started
 
-### Prerequisites
+A Supabase backend is optional — the app ships with mock data and works out of the box.
 
-- Node.js 16+
-- A [Supabase](https://supabase.com) project
+### Quick Start (with mock data)
 
-### Setup
+1. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+2. **Run the development server**
+   ```bash
+   npm run dev
+   ```
+
+3. Open **http://localhost:5173** and log in with:
+   - **Email:** `admin@gmail.com`
+   - **Password:** `pass1234`
+
+### With Supabase
 
 1. **Clone the repo**
    ```bash

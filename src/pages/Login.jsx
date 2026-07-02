@@ -1,7 +1,9 @@
+import { Navigate } from "react-router-dom";
 import styled from "styled-components";
 import LoginForm from "../features/authentication/LoginForm";
 import Logo from "../ui/Logo";
 import Heading from "../ui/Heading";
+import { useUser } from "../features/authentication/useUser";
 
 const LoginLayout = styled.main`
   min-height: 100vh;
@@ -14,6 +16,10 @@ const LoginLayout = styled.main`
 `;
 
 function Login() {
+  const { isAuthenticated } = useUser();
+
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
+
   return (
     <LoginLayout>
       <Logo />

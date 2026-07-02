@@ -1,131 +1,92 @@
 import { getToday } from "../utils/helpers";
-import supabase from "./supabase";
 import { PAGE_SIZE } from "../utils/constants";
+import { mockBookings, mockCabins, mockGuests } from "../data/mockData";
 
 export async function getBookings({ filter, sortBy, page }) {
-  let query = supabase
-    .from("bookings")
-    .select(
-      "id, created_at, startDate, endDate, numNights, numGuests, status, totalPrice, cabins(name), guests(fullName, email)",
-      { count: "exact" }
-    );
+  let bookings = [...mockBookings];
 
-  // FILTER
-  if (filter) query = query[filter.method || "eq"](filter.field, filter.value);
+  if (filter) {
+    const { field, value, method } = filter;
+    if (method === "gte") {
+      bookings = bookings.filter((b) => b[field] >= value);
+    } else {
+      bookings = bookings.filter((b) => b[field] === value);
+    }
+  }
 
-  // SORT
-  if (sortBy)
-    query = query.order(sortBy.field, {
-      ascending: sortBy.direction === "asc",
+  if (sortBy) {
+    const { field, direction } = sortBy;
+    bookings.sort((a, b) => {
+      if (a[field] < b[field]) return direction === "asc" ? -1 : 1;
+      if (a[field] > b[field]) return direction === "asc" ? 1 : -1;
+      return 0;
     });
+  }
+
+  const count = bookings.length;
 
   if (page) {
     const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
-    query = query.range(from, to);
+    const to = from + PAGE_SIZE;
+    bookings = bookings.slice(from, to);
   }
 
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error(error);
-    throw new Error("Bookings could not be loaded");
-  }
-
-  return { data, count };
+  return { data: bookings, count };
 }
 
 export async function getBooking(id) {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("*, cabins(*), guests(*)")
-    .eq("id", id)
-    .single();
+  const booking = mockBookings.find((b) => b.id === Number(id));
+  if (!booking) throw new Error("Booking not found");
 
-  if (error) {
-    console.error(error);
-    throw new Error("Booking not found");
-  }
+  const cabin = mockCabins.find((c) => c.id === booking.cabinId);
+  const guest = mockGuests.find((g) => g.id === booking.guestId);
 
-  return data;
+  return { ...booking, cabins: cabin, guests: guest };
 }
 
-// Returns all BOOKINGS that are were created after the given date. Useful to get bookings created in the last 30 days, for example.
-// date: ISOString
 export async function getBookingsAfterDate(date) {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("created_at, totalPrice, extrasPrice")
-    .gte("created_at", date)
-    .lte("created_at", getToday({ end: true }));
-
-  if (error) {
-    console.error(error);
-    throw new Error("Bookings could not get loaded");
-  }
-
-  return data;
+  return mockBookings
+    .filter((b) => b.created_at.substring(0, 19) >= date.substring(0, 19))
+    .map((b) => ({
+      created_at: b.created_at,
+      totalPrice: b.totalPrice,
+      extrasPrice: b.extrasPrice,
+    }));
 }
 
-// Returns all STAYS that are were created after the given date
 export async function getStaysAfterDate(date) {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("*, guests(fullName)")
-    .gte("startDate", date)
-    .lte("startDate", getToday());
-
-  if (error) {
-    console.error(error);
-    throw new Error("Bookings could not get loaded");
-  }
-
-  return data;
+  const todayStr = getToday();
+  return mockBookings
+    .filter((b) => {
+      const x = b.startDate.substring(0, 10);
+      const todayDate = todayStr.substring(0, 10);
+      const filterDate = date.substring(0, 10);
+      return x >= filterDate && x <= todayDate;
+    })
+    .map((b) => ({ ...b, guests: { fullName: b.guests.fullName } }));
 }
 
-// Activity means that there is a check in or a check out today
 export async function getStaysTodayActivity() {
-  const { data, error } = await supabase
-    .from("bookings")
-    .select("*, guests(fullName, nationality, countryFlag)")
-    .or(
-      `and(status.eq.unconfirmed,startDate.eq.${getToday()}),and(status.eq.checked-in,endDate.eq.${getToday()})`
-    )
-    .order("created_at");
-
-  // Equivalent to this. But by querying this, we only download the data we actually need, otherwise we would need ALL bookings ever created
-  // (stay.status === 'unconfirmed' && isToday(new Date(stay.startDate))) ||
-  // (stay.status === 'checked-in' && isToday(new Date(stay.endDate)))
-
-  if (error) {
-    console.error(error);
-    throw new Error("Bookings could not get loaded");
-  }
-  return data;
+  const today = getToday().substring(0, 10);
+  return mockBookings.filter((b) => {
+    const start = b.startDate.substring(0, 10);
+    const end = b.endDate.substring(0, 10);
+    return (
+      (b.status === "unconfirmed" && start === today) ||
+      (b.status === "checked-in" && end === today)
+    );
+  });
 }
 
 export async function updateBooking(id, obj) {
-  const { data, error } = await supabase
-    .from("bookings")
-    .update(obj)
-    .eq("id", id)
-    .select()
-    .single();
-
-  if (error) {
-    console.error(error);
-    throw new Error("Booking could not be updated");
-  }
-  return data;
+  const booking = mockBookings.find((b) => b.id === Number(id));
+  if (!booking) throw new Error("Booking not found");
+  Object.assign(booking, obj);
+  return booking;
 }
 
 export async function deleteBooking(id) {
-  // REMEMBER RLS POLICIES
-  const { data, error } = await supabase.from("bookings").delete().eq("id", id);
-
-  if (error) {
-    console.error(error);
-    throw new Error("Booking could not be deleted");
-  }
-  return data;
+  const idx = mockBookings.findIndex((b) => b.id === Number(id));
+  if (idx !== -1) mockBookings.splice(idx, 1);
+  return null;
 }
